@@ -38,7 +38,7 @@ class ShelveDb:
         if not (key in self.db):
             raise Exception(404)
 
-        return db[key]
+        return self.db[key]
 
     def upsert(self, key, value):
         self.open()
@@ -49,7 +49,7 @@ class ShelveDb:
         if not (key in self.db):
             raise Exception(404)
 
-        del db[key]
+        del self.db[key]
 
     def cleanup(self):
         if self.opened:
