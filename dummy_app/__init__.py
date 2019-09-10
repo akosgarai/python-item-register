@@ -1,6 +1,6 @@
-import shelve
+from dummy_app import shelve_db
 
-from flask import Flask, g
+from flask import Flask
 from flask_restful import Resource, Api, reqparse
 
 # Create an instance of Flask
@@ -9,17 +9,12 @@ app = Flask(__name__)
 # Create the API
 api = Api(app)
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = shelve.open("incense-sticks.db")
-    return db
+store = shelve_db.ShelveDb('incense-sticks.db')
+
 
 @app.teardown_appcontext
 def teardown_db(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+    store.teardown_db(exception)
 
 @app.route("/health")
 def health():
@@ -29,13 +24,7 @@ def health():
 
 class IncenseSticks(Resource):
     def get(self):
-        shelf = get_db()
-        keys = list(shelf.keys())
-
-        incenseSticks = []
-
-        for key in keys:
-            incenseSticks.append(shelf[key])
+        incenseSticks = store.get_all()
 
         return {'items': incenseSticks}, 200
 
@@ -50,29 +39,27 @@ class IncenseSticks(Resource):
         # Parse the arguments into an object
         args = parser.parse_args()
 
-        shelf = get_db()
-        shelf[args['identifier']] = args
+        store.upsert(args['identifier'], args)
 
         return args, 201
 
 class IncenseStick(Resource):
     def get(self, identifier):
-        shelf = get_db()
-
-        # If the key does not exist in the data store, return a 404 error.
-        if not (identifier in shelf):
+        try:
+            item = store.get_one(identifier)
+        except Exception:
+            # If the key does not exist in the data store, return a 404 error.
             return '', 404
 
-        return shelf[identifier], 200
+        return item, 200
 
     def delete(self, identifier):
-        shelf = get_db()
-
-        # If the key does not exist in the data store, return a 404 error.
-        if not (identifier in shelf):
+        try:
+            store.delete(identifier)
+        except Exception:
+            # If the key does not exist in the data store, return a 404 error.
             return '', 404
 
-        del shelf[identifier]
         return '', 204
 
 api.add_resource(IncenseSticks, '/incense-sticks')
