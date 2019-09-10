@@ -1,6 +1,6 @@
 from dummy_app import shelve_db
 
-from flask import Flask
+from flask import Flask, render_template
 from flask_restful import Resource, Api, reqparse
 
 # Create an instance of Flask
@@ -21,6 +21,10 @@ def health():
     """For monitoring the service"""
 
     return '', 200
+
+@app.route("/staticfile")
+def staticfile():
+    return render_template("staticfile.html")
 
 class IncenseSticks(Resource):
     def get(self):
